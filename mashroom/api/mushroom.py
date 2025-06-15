@@ -68,6 +68,6 @@ async def predict(mushroom: MushroomFeatures):
     probability = model.predict_proba(scaled)[0][1]
 
     return {
-        "class": bool(prediction),
+        "class": prediction == 'p',
         "probability": f'{probability * 100:.1f}'
     }
