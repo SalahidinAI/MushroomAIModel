@@ -53,8 +53,8 @@ ENCODING_MAP = {
 }
 
 
-@mushroom_router.post('/predict')
-async def predict(mushroom: MushroomFeatures):
+@mushroom_router.post('/predict/logistic/')
+async def predict_logistic(mushroom: MushroomFeatures):
     data = []
     mushroom_dict = mushroom.dict()
 
@@ -69,5 +69,24 @@ async def predict(mushroom: MushroomFeatures):
 
     return {
         "class": prediction == 'p',
-        "probability": f'{probability * 100:.1f}'
+        "probability": f'{probability * 100:.1f}%'
+    }
+
+
+@mushroom_router.post('/predict/tree/')
+async def predict_tree(mushroom: MushroomFeatures):
+    features = []
+    mushroom_dict = mushroom.dict()
+
+    for feature, possible_values in ENCODING_MAP.items():
+        value = mushroom_dict[feature]
+        encoded = [1 if value == pv else 0 for pv in possible_values]
+        features.extend(encoded)
+
+    prediction = model.predict([features])[0]
+    probability = model.predict_proba([features])[0][1]
+
+    return {
+        "class": prediction == 'p',
+        "probability": f'{probability * 100:.1f}%'
     }
