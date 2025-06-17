@@ -7,17 +7,18 @@ import joblib
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 
 mushroom_router = APIRouter(prefix='/mushroom', tags=['Mushroom'])
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-model_path = BASE_DIR / 'mushroom_model.pkl'
-scaler_path = BASE_DIR / 'mushroom_scaler.pkl'
+model_path = BASE_DIR / 'model_logistic.pkl'
+scaler_path = BASE_DIR / 'scaler.pkl'
+model_tree_path = BASE_DIR / 'model_tree.pkl'
 
 model = joblib.load(model_path)
 scaler = joblib.load(scaler_path)
+model_tree = joblib.load(model_tree_path)
 
 
 async def get_db():
@@ -55,20 +56,20 @@ ENCODING_MAP = {
 
 @mushroom_router.post('/predict/logistic/')
 async def predict_logistic(mushroom: MushroomFeatures):
-    data = []
+    features = []
     mushroom_dict = mushroom.dict()
 
     for feature, possible_values in ENCODING_MAP.items():
         value = mushroom_dict[feature]
         encoded = [1 if value == pv else 0 for pv in possible_values]
-        data.extend(encoded)
+        features.extend(encoded)
 
-    scaled = scaler.transform([data])
+    scaled = scaler.transform([features])
     prediction = model.predict(scaled)[0]
     probability = model.predict_proba(scaled)[0][1]
 
     return {
-        "class": prediction == 'p',
+        "class": f'{prediction == 1}',
         "probability": f'{probability * 100:.1f}%'
     }
 
@@ -83,10 +84,10 @@ async def predict_tree(mushroom: MushroomFeatures):
         encoded = [1 if value == pv else 0 for pv in possible_values]
         features.extend(encoded)
 
-    prediction = model.predict([features])[0]
-    probability = model.predict_proba([features])[0][1]
+    prediction = model_tree.predict([features])[0]
+    probability = model_tree.predict_proba([features])[0][1]
 
     return {
-        "class": prediction == 'p',
+        "class": f'{int(prediction) == 1}',
         "probability": f'{probability * 100:.1f}%'
     }
